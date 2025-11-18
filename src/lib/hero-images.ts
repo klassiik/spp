@@ -207,7 +207,7 @@ export function generateSearchQuery(config: HeroImageConfig): string {
   }
 
   // Add custom keywords
-  if (config.keywords && config.keywords.length > 0) {
+  if (config.keywords && Array.isArray(config.keywords) && config.keywords.length > 0) {
     queries.push(...config.keywords);
   }
 
