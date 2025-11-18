@@ -1,0 +1,196 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useRef, useCallback } from "react";
+import { X, Phone } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { businessInfo } from "@/lib/data/business";
+import { counties, getLocationsByCounty } from "@/lib/data/locations";
+
+interface MobileMenuProps {
+  id?: string;
+  open?: boolean;
+  onClose: () => void;
+}
+
+export function MobileMenu({ id, open = true, onClose }: MobileMenuProps) {
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const closeBtnRef = useRef<HTMLButtonElement | null>(null);
+
+  // Close on ESC and trap focus
+  const onKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "Tab" && panelRef.current) {
+        const focusable = panelRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        } else if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      }
+    },
+    [onClose]
+  );
+
+  useEffect(() => {
+    document.addEventListener("keydown", onKeyDown);
+    // initial focus when mounted
+    closeBtnRef.current?.focus();
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [onKeyDown]);
+
+  const handleOverlayClick = (e: React.MouseEvent) => {
+    if (e.target === overlayRef.current) onClose();
+  };
+
+  return (
+    <div
+      id={id}
+      ref={overlayRef}
+      className={`fixed inset-0 z-[9999] lg:hidden bg-black/50 backdrop-blur-[3px] transition-opacity duration-200 ${open ? "opacity-100" : "opacity-0"} motion-reduce:transition-none`}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="mobile-menu-title"
+      onMouseDown={handleOverlayClick}
+    >
+      <div
+        ref={panelRef}
+        className={`absolute right-0 top-0 h-full w-80 max-w-calc bg-white dark:bg-slate-950 shadow-2xl border-l border-gray-200 dark:border-gray-800 outline-none focus:outline-none transition-transform duration-200 will-change-transform ${open ? "translate-x-0" : "translate-x-full"} motion-reduce:transition-none motion-reduce:transform-none flex flex-col overflow-hidden`}
+      >
+        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-slate-900 px-4 py-3">
+          <h2 id="mobile-menu-title" className="text-base font-semibold text-gray-900 dark:text-white">
+            Menu
+          </h2>
+          <Button
+            ref={closeBtnRef}
+            variant="ghost"
+            size="icon"
+            aria-label="Close menu"
+            onClick={onClose}
+          >
+            <X className="h-5 w-5" />
+          </Button>
+        </div>
+
+        <div className="border-b border-gray-200 dark:border-gray-800 px-4 py-3 bg-white dark:bg-slate-950">
+          <a href={`tel:${businessInfo.phoneRaw}`} onClick={onClose} className="block">
+            <Button className="w-full gap-2" variant="default">
+              <Phone className="h-4 w-4" />
+              Call {businessInfo.phone}
+            </Button>
+          </a>
+        </div>
+
+        <nav className="flex-1 overflow-y-auto px-4 py-3 bg-white dark:bg-slate-950">
+          <ul className="space-y-1">
+            <li>
+              <Link className="block rounded px-3 py-2 text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors" href="/about" onClick={onClose}>
+                About
+              </Link>
+            </li>
+
+            <li className="pt-1">
+              <details className="group">
+                <summary className="cursor-pointer list-none rounded px-3 py-2 text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
+                  <span className="font-medium">Services</span>
+                </summary>
+                <ul className="mt-1 space-y-1 pl-3">
+                  <li>
+                    <Link className="block rounded px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors" href="/services" onClick={onClose}>
+                      All Services
+                    </Link>
+                  </li>
+                  <li>
+                    <Link className="block rounded px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors" href="/services/residential-property-management" onClick={onClose}>
+                      Residential Property Management
+                    </Link>
+                  </li>
+                  <li>
+                    <Link className="block rounded px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors" href="/services/commercial-property-management" onClick={onClose}>
+                      Commercial Property Management
+                    </Link>
+                  </li>
+                  <li>
+                    <Link className="block rounded px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors" href="/services/tenant-placement-leasing" onClick={onClose}>
+                      Tenant Placement & Leasing
+                    </Link>
+                  </li>
+                </ul>
+              </details>
+            </li>
+
+            <li className="pt-1">
+              <details className="group">
+                <summary className="cursor-pointer list-none rounded px-3 py-2 text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
+                  <span className="font-medium">Locations</span>
+                </summary>
+                <div className="mt-1 space-y-3 pl-3 pr-2">
+                  {counties.map((county) => {
+                    const locations = getLocationsByCounty(county.slug);
+                    return (
+                      <div key={county.slug}>
+                        <Link
+                          className="block rounded px-3 py-2 text-sm font-medium text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+                          href={`/locations/${county.slug}`}
+                          onClick={onClose}
+                        >
+                          {county.name}
+                        </Link>
+                        <ul className="mt-1 space-y-1 pl-3">
+                          {locations.slice(0, 6).map((location) => (
+                            <li key={location.slug}>
+                              <Link
+                                className="block rounded px-3 py-1.5 text-[13px] text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+                                href={`/locations/${county.slug}/${location.slug}`}
+                                onClick={onClose}
+                              >
+                                {location.name}
+                              </Link>
+                            </li>
+                          ))}
+                          {locations.length > 6 && (
+                            <li>
+                              <Link
+                                className="block rounded px-3 py-1.5 text-[13px] text-blue-600 dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+                                href={`/locations/${county.slug}`}
+                                onClick={onClose}
+                              >
+                                + {locations.length - 6} more
+                              </Link>
+                            </li>
+                          )}
+                        </ul>
+                      </div>
+                    );
+                  })}
+                </div>
+              </details>
+            </li>
+
+            <li>
+              <Link className="block rounded px-3 py-2 text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors" href="/listings" onClick={onClose}>
+                Listings
+              </Link>
+            </li>
+            <li>
+              <Link className="block rounded px-3 py-2 text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors" href="/contact" onClick={onClose}>
+                Contact
+              </Link>
+            </li>
+          </ul>
+        </nav>
+      </div>
+    </div>
+  );
+}
