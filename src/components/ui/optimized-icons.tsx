@@ -57,9 +57,8 @@ import {
   Battery,
   Volume2,
   VolumeX,
-  Brightness,
-  Moon,
   Sun,
+  Moon,
   Smartphone,
   Monitor,
   Tablet,
@@ -71,7 +70,6 @@ import {
   File,
   Folder,
   FolderOpen,
-  BookmarkIcon,
   Flag,
   Tag,
   Link,
@@ -79,13 +77,10 @@ import {
   Edit,
   Trash2,
   Save,
-  Cancel,
   Upload,
   Download as DownloadIcon,
-  Print,
   Share,
   Send,
-  Receive,
   Wallet,
   CreditCard,
   DollarSignIcon
@@ -169,10 +164,7 @@ const ICONS = {
   grid: Grid3X3,
   list: List,
   save: Save,
-  cancel: Cancel,
-  print: Print,
   send: Send,
-  receive: Receive,
   
   // Financial
   wallet: Wallet,
@@ -183,7 +175,6 @@ const ICONS = {
   
   // Visual indicators
   wifi: Wifi,
-  brightness: Brightness,
   volume: Volume2,
   
   // Device types
@@ -195,11 +186,10 @@ const ICONS = {
   // Common nouns
   tag: Tag,
   flag: Flag,
-  bookmarkIcon: BookmarkIcon,
   heart: Heart,
   linkIcon: Link,
-  mailIcon: Mail,
-  phoneIcon: Phone,
+  mailIconPrimary: Mail,
+  phoneIconPrimary: Phone,
   
   // File types
   folderOpen: FolderOpen,
@@ -218,8 +208,6 @@ const ICONS = {
   chevronDown: ChevronDown,
   chevronUp: ChevronUp,
   shareIcon: Share2,
-  mailIcon: Mail,
-  phoneIcon: Phone,
   
   // Dollar variants
   dollarSignIcon: DollarSign,
@@ -372,7 +360,7 @@ export function IconGrid({
     lg: "gap-6",
   };
   
-  const columnClasses = {
+  const columnClasses: Record<number, string> = {
     2: "grid-cols-2",
     3: "grid-cols-3",
     4: "grid-cols-4",
@@ -381,7 +369,7 @@ export function IconGrid({
   };
   
   return (
-    <div className={["grid", columnClasses[columns], gapClasses[gap], className].join(" ")}>
+    <div className={["grid", columnClasses[columns as keyof typeof columnClasses] || "grid-cols-3", gapClasses[gap], className].join(" ")}>
       {icons.map((item) => (
         <button
           key={item.name}
@@ -405,7 +393,7 @@ export function IconGrid({
 // Lazy icon loader for dynamic imports
 export function LazyIcon({
   name,
-  fallback: FallbackIcon = "loading",
+  fallback = "loading",
   ...props
 }: IconProps & { fallback?: keyof typeof ICONS }) {
   // This component demonstrates dynamic loading pattern
@@ -555,7 +543,6 @@ export {
   Battery,
   Volume2,
   VolumeX,
-  Brightness,
   Moon,
   Sun,
   Smartphone,
@@ -574,11 +561,8 @@ export {
   Link,
   Unlink,
   Save,
-  Cancel,
   Upload,
-  Print,
   Send,
-  Receive,
   Wallet,
   CreditCard,
 };
