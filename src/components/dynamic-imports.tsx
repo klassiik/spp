@@ -152,10 +152,10 @@ function DynamicImportError({
 }
 
 // Enhanced dynamic components with error boundaries and loading states
-export function DynamicTestimonials({ 
-  maxItems = 6, 
+export function DynamicTestimonials({
+  maxItems = 6,
   showTitle = true,
-  className = "" 
+  className = ""
 }: {
   maxItems?: number;
   showTitle?: boolean;
@@ -163,33 +163,23 @@ export function DynamicTestimonials({
 }) {
   return (
     <Suspense fallback={<TestimonialsSkeleton maxItems={maxItems} />}>
-      <ComponentErrorBoundary 
-        componentName="Testimonials"
-        fallback={({ error, resetError }) => (
-          <DynamicImportError error={error} resetError={resetError} componentName="Testimonials" />
-        )}
-      >
+      <ComponentErrorBoundary componentName="Testimonials">
         <Testimonials maxItems={maxItems} showTitle={showTitle} className={className} />
       </ComponentErrorBoundary>
     </Suspense>
   );
 }
 
-export function DynamicFAQ({ 
-  faqs, 
-  serviceTitle 
+export function DynamicFAQ({
+  faqs,
+  serviceTitle
 }: {
   faqs: Array<{ question: string; answer: string }>;
   serviceTitle?: string;
 }) {
   return (
     <Suspense fallback={<FAQSkeleton count={faqs.length} />}>
-      <ComponentErrorBoundary 
-        componentName="FAQ"
-        fallback={({ error, resetError }) => (
-          <DynamicImportError error={error} resetError={resetError} componentName="FAQ" />
-        )}
-      >
+      <ComponentErrorBoundary componentName="FAQ">
         <FAQ faqs={faqs} serviceTitle={serviceTitle} />
       </ComponentErrorBoundary>
     </Suspense>
@@ -199,40 +189,47 @@ export function DynamicFAQ({
 export function DynamicListingsWidget() {
   return (
     <Suspense fallback={<ListingsWidgetSkeleton />}>
-      <ComponentErrorBoundary 
-        componentName="Listings Widget"
-        fallback={({ error, resetError }) => (
-          <DynamicImportError error={error} resetError={resetError} componentName="Listings Widget" />
-        )}
-      >
+      <ComponentErrorBoundary componentName="Listings Widget">
         <ListingsWidget />
       </ComponentErrorBoundary>
     </Suspense>
   );
 }
 
-export function DynamicHeroImage(props: any) {
+import { ComponentErrorBoundary } from '@/components/error/ErrorBoundary';
+import { HeroImageConfig } from '@/lib/hero-images';
+
+interface HeroImageProps {
+  config: HeroImageConfig;
+  title: string;
+  subtitle?: string;
+  description?: string;
+  primaryCTA?: {
+    text: string;
+    href: string;
+  };
+  secondaryCTA?: {
+    text: string;
+    href: string;
+  };
+  showAttribution?: boolean;
+  className?: string;
+}
+
+export function DynamicHeroImage(props: HeroImageProps) {
   return (
     <Suspense fallback={<HeroSkeleton />}>
-      <ComponentErrorBoundary 
-        componentName="Hero Image"
-        fallback={({ error, resetError }) => (
-          <HeroSkeleton height="h-96" />
-        )}
-      >
+      <ComponentErrorBoundary componentName="Hero Image">
         <HeroImage {...props} />
       </ComponentErrorBoundary>
     </Suspense>
   );
 }
 
-// ComponentErrorBoundary import
-import { ComponentErrorBoundary } from '@/components/error/ErrorBoundary';
-
 // Preload function for critical components
 export function preloadCriticalComponents() {
   // Preload components that are likely to be needed soon
-  const preloadComponent = (importFn: () => Promise<any>) => {
+  const preloadComponent = (importFn: () => Promise<unknown>) => {
     if (typeof window !== 'undefined') {
       importFn().catch(() => {
         // Silently fail preloading
