@@ -1,6 +1,5 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   images: {
     remotePatterns: [
       {
@@ -17,11 +16,6 @@ const nextConfig: NextConfig = {
   compress: true,
   poweredByHeader: false,
   reactStrictMode: true,
-  // Silence workspace root warnings by explicitly setting roots
-  turbopack: {
-    root: "C:\\Users\\klass\\OneDrive\\Documents\\GitHub\\SPP",
-  },
-  outputFileTracingRoot: "C:\\Users\\klass\\OneDrive\\Documents\\GitHub\\SPP",
 };
 
-export default nextConfig;
+module.exports = nextConfig;
