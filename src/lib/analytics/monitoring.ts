@@ -168,7 +168,7 @@ export class AnalyticsManager {
         if (timing) {
           this.trackPerformance({
             name: 'navigation',
-            value: timing.loadEventEnd - timing.navigationStart,
+            value: timing.loadEventEnd - timing.startTime,
             timestamp: Date.now(),
             url: window.location.href,
           });
