@@ -204,30 +204,54 @@ export function validateImage(image: Photo, criteria: ImageValidationCriteria = 
  */
 export async function searchHeroImages(config: HeroImageConfig): Promise<HeroImageResult[]> {
   const query = generateSearchQuery(config);
-  const fallbackImage = config.fallback || 'fallback'; 
+  const fallbackImage = config.fallback || 'fallback';
+
+  console.log('[HeroImages] Searching for hero images with config:', {
+    category: config.category,
+    location: config.location,
+    service: config.service,
+    query,
+  });
 
   try {
     const photos = await searchLocationImages(query, 10);
 
     if (!photos) {
+      console.warn('[HeroImages] No photos returned from Pexels API, using fallback images');
       return getFallbackImages(fallbackImage);
     }
     
+    console.log(`[HeroImages] Received ${photos.length} photos from Pexels API`);
+    
     // Filter and validate images
     const validImages = photos
-      .filter(photo => validateImage(photo))
+      .filter(photo => {
+        const isValid = validateImage(photo);
+        if (!isValid) {
+          console.log(`[HeroImages] Filtered out image ${photo.id}: dimensions ${photo.width}x${photo.height}`);
+        }
+        return isValid;
+      })
       .slice(0, 3) // Take top 3 valid images
       .map(photo => formatHeroImageResult(photo));
 
     if (validImages.length > 0) {
+      console.log(`[HeroImages] Successfully validated ${validImages.length} images`);
       return validImages;
     }
 
     // If no valid images found, return fallbacks
+    console.warn('[HeroImages] No valid images found after filtering, using fallback images');
     return getFallbackImages(fallbackImage);
 
   } catch (error) {
-    console.error('Error searching hero images:', error);
+    console.error('[HeroImages] Error searching hero images:', error);
+    if (error instanceof Error) {
+      console.error('[HeroImages] Error details:', {
+        message: error.message,
+        stack: error.stack,
+      });
+    }
     return getFallbackImages(fallbackImage);
   }
 }
@@ -364,18 +388,34 @@ export function checkRateLimit(): boolean {
  * Get hero image for specific page context
  */
 export async function getHeroImageForPage(config: HeroImageConfig): Promise<HeroImageResult> {
+  console.log('[HeroImages] Getting hero image for page:', config);
+  
   // Check rate limit first
   if (!checkRateLimit()) {
-    console.warn('Rate limit exceeded, using fallback image');
+    console.warn('[HeroImages] Rate limit exceeded, using fallback image');
     const fallbacks = getFallbackImages(config.fallback || 'fallback');
     return fallbacks[0];
   }
 
   try {
     const images = await searchHeroImages(config);
-    return images[0] || getFallbackImages(config.fallback || 'fallback')[0];
+    const selectedImage = images[0] || getFallbackImages(config.fallback || 'fallback')[0];
+    
+    console.log('[HeroImages] Selected image:', {
+      id: selectedImage.id,
+      url: selectedImage.url,
+      isFallback: selectedImage.id === (config.fallback || 'fallback'),
+    });
+    
+    return selectedImage;
   } catch (error) {
-    console.error('Error getting hero image:', error);
+    console.error('[HeroImages] Error getting hero image:', error);
+    if (error instanceof Error) {
+      console.error('[HeroImages] Error details:', {
+        message: error.message,
+        stack: error.stack,
+      });
+    }
     const fallbacks = getFallbackImages(config.fallback || 'fallback');
     return fallbacks[0];
   }
