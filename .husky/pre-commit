@@ -1,0 +1,13 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Run schema validation before commit
+npx tsx scripts/validate-schemas.ts
+
+# If validation fails, abort the commit
+if [ $? -ne 0 ]; then
+  echo "Schema validation failed. Commit aborted."
+  exit 1
+fi
+
+echo "✅ Pre-commit checks passed!"
