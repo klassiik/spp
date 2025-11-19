@@ -147,7 +147,7 @@ export function generateSearchQuery(config: HeroImageConfig): string {
   // Add category-specific terms
   switch (config.category) {
     case 'homepage':
-      queries.push('professional', 'california landscape');
+      queries.push('luxury home', 'modern house', 'california architecture', 'beautiful property');
       break;
     case 'about':
       queries.push('team', 'business', 'professional');
@@ -214,7 +214,8 @@ export async function searchHeroImages(config: HeroImageConfig): Promise<HeroIma
   });
 
   try {
-    const photos = await searchLocationImages(query, 10);
+    // Increased from 10 to 30 to get more image options
+    const photos = await searchLocationImages(query, 30);
 
     if (!photos) {
       console.warn('[HeroImages] No photos returned from Pexels API, using fallback images');
@@ -232,7 +233,7 @@ export async function searchHeroImages(config: HeroImageConfig): Promise<HeroIma
         }
         return isValid;
       })
-      .slice(0, 3) // Take top 3 valid images
+      .slice(0, 10) // Increased from 3 to 10 valid images for more variety
       .map(photo => formatHeroImageResult(photo));
 
     if (validImages.length > 0) {
