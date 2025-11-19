@@ -1,11 +1,12 @@
 /**
  * Dynamic Hero Image Management System
- * Intelligent Unsplash image sourcing based on page context
+ * Intelligent Pexels image sourcing based on page context
  */
 
-import { unsplash, searchLocationImages, getPhotoById, trackDownload } from './unsplash';
+import { searchLocationImages } from './pexels';
 import { counties, getLocationsByCounty } from './data/locations';
 import { services } from './data/services';
+import { Photo } from 'pexels';
 
 // Types for hero image configuration
 export interface HeroImageConfig {
@@ -58,42 +59,6 @@ export interface HeroImageResult {
   };
 }
 
-// Unsplash API response types (simplified)
-interface UnsplashUrls {
-  small: string;
-  thumb: string;
-  regular: string;
-  full: string;
-  raw: string;
-}
-
-interface UnsplashUser {
-  name: string;
-  username: string;
-  links: {
-    html: string;
-  };
-}
-
-interface UnsplashLinks {
-  html: string;
-  download_location: string;
-}
-
-interface UnsplashPhoto {
-  id: string;
-  urls: UnsplashUrls;
-  description: string | null;
-  alt_description: string | null;
-  user: UnsplashUser;
-  links: UnsplashLinks;
-  width: number;
-  height: number;
-  color: string | null;
-  blur_hash: string | null;
-  created_at: string;
-}
-
 // Image validation criteria
 export interface ImageValidationCriteria {
   minWidth: number;
@@ -117,20 +82,6 @@ const DEFAULT_HERO_VALIDATION: ImageValidationCriteria = {
   },
 };
 
-// Cache configuration
-interface CacheConfig {
-  ttl: number; // Time to live in milliseconds
-  maxSize: number; // Maximum cache entries
-  storagePath: string; // Local storage path
-}
-
-// Default cache configuration
-const DEFAULT_CACHE_CONFIG: CacheConfig = {
-  ttl: 7 * 24 * 60 * 60 * 1000, // 7 days
-  maxSize: 100, // 100 images
-  storagePath: '/public/images/hero-cache/',
-};
-
 // Rate limiting configuration
 interface RateLimitConfig {
   requestsPerHour: number;
@@ -138,10 +89,10 @@ interface RateLimitConfig {
   burstLimit: number;
 }
 
-const UNSPLASH_RATE_LIMITS: RateLimitConfig = {
-  requestsPerHour: 50,
-  requestsPerMinute: 10,
-  burstLimit: 5,
+const PEXELS_RATE_LIMITS: RateLimitConfig = {
+  requestsPerHour: 200,
+  requestsPerMinute: 40,
+  burstLimit: 10,
 };
 
 /**
@@ -231,7 +182,7 @@ function findLocationData(locationSlug: string) {
 /**
  * Validate image against criteria
  */
-export function validateImage(image: UnsplashPhoto, criteria: ImageValidationCriteria = DEFAULT_HERO_VALIDATION): boolean {
+export function validateImage(image: Photo, criteria: ImageValidationCriteria = DEFAULT_HERO_VALIDATION): boolean {
   // Check dimensions
   if (image.width < criteria.minWidth || image.height < criteria.minHeight) {
     return false;
@@ -253,23 +204,14 @@ export function validateImage(image: UnsplashPhoto, criteria: ImageValidationCri
  */
 export async function searchHeroImages(config: HeroImageConfig): Promise<HeroImageResult[]> {
   const query = generateSearchQuery(config);
-  const fallbackImage = config.fallback || '1560518883-ce1e9c3bd3a5'; // Default California property image
+  const fallbackImage = config.fallback || 'fallback'; 
 
   try {
-    const result = await unsplash.search.getPhotos({
-      query,
-      page: 1,
-      perPage: 10, // Get multiple options for validation
-      orientation: 'landscape',
-      orderBy: 'relevant',
-    });
+    const photos = await searchLocationImages(query, 10);
 
-    if (result.errors) {
-      console.error('Unsplash API search error:', result.errors);
+    if (!photos) {
       return getFallbackImages(fallbackImage);
     }
-
-    const photos = result.response?.results || [];
     
     // Filter and validate images
     const validImages = photos
@@ -278,12 +220,6 @@ export async function searchHeroImages(config: HeroImageConfig): Promise<HeroIma
       .map(photo => formatHeroImageResult(photo));
 
     if (validImages.length > 0) {
-      // Track downloads for attribution compliance
-      for (const image of validImages) {
-        if (image.links.download_location) {
-          await trackDownload(image.links.download_location);
-        }
-      }
       return validImages;
     }
 
@@ -297,36 +233,47 @@ export async function searchHeroImages(config: HeroImageConfig): Promise<HeroIma
 }
 
 /**
- * Format Unsplash photo to HeroImageResult
+ * Format Pexels photo to HeroImageResult
  */
-function formatHeroImageResult(photo: UnsplashPhoto): HeroImageResult {
-  // Generate responsive URLs based on the regular URL
-  const regularUrl = photo.urls.regular;
-  const baseUrl = regularUrl.replace(/w=\d+[^&]*/, '');
-  
+function formatHeroImageResult(photo: Photo): HeroImageResult {
   return {
-    id: photo.id,
-    url: photo.urls.regular,
-    urls: photo.urls,
-    responsiveUrls: {
-      small: `${baseUrl}w=640&q=80&fit=crop&auto=format`,
-      medium: `${baseUrl}w=1024&q=80&fit=crop&auto=format`,
-      large: `${baseUrl}w=1920&q=80&fit=crop&auto=format`,
-      xlarge: `${baseUrl}w=2560&q=80&fit=crop&auto=format`,
+    id: photo.id.toString(),
+    url: photo.src.original,
+    urls: {
+      small: photo.src.small,
+      thumb: photo.src.tiny,
+      regular: photo.src.large,
+      full: photo.src.original,
+      raw: photo.src.original,
     },
-    description: photo.description,
-    alt_description: photo.alt_description,
-    user: photo.user,
-    links: photo.links,
+    responsiveUrls: {
+      small: photo.src.small,
+      medium: photo.src.large,
+      large: photo.src.large2x,
+      xlarge: photo.src.original,
+    },
+    description: photo.alt || 'Property Management Image',
+    alt_description: photo.alt || 'Property Management Image',
+    user: {
+      name: photo.photographer,
+      username: photo.photographer_url.split('/').pop() || photo.photographer,
+      links: {
+        html: photo.photographer_url,
+      },
+    },
+    links: {
+      html: photo.url,
+      download_location: photo.src.original, // Pexels doesn't have a specific download tracking endpoint like Unsplash
+    },
     width: photo.width,
     height: photo.height,
-    color: photo.color,
-    blur_hash: photo.blur_hash,
-    created_at: photo.created_at,
+    color: photo.avg_color,
+    blur_hash: null, // Pexels doesn't provide blur_hash
+    created_at: new Date().toISOString(), // Pexels doesn't provide created_at
     attribution: {
       required: true,
-      text: `Photo by ${photo.user.name} on Unsplash`,
-      html: `<a href="${photo.links.html}?utm_source=spp_website&utm_medium=referral" target="_blank" rel="noopener noreferrer">Photo by ${photo.user.name}</a> on <a href="https://unsplash.com/?utm_source=spp_website&utm_medium=referral" target="_blank" rel="noopener noreferrer">Unsplash</a>`,
+      text: `Photo by ${photo.photographer} on Pexels`,
+      html: `<a href="${photo.photographer_url}" target="_blank" rel="noopener noreferrer">Photo by ${photo.photographer}</a> on <a href="https://www.pexels.com" target="_blank" rel="noopener noreferrer">Pexels</a>`,
     },
   };
 }
@@ -335,25 +282,24 @@ function formatHeroImageResult(photo: UnsplashPhoto): HeroImageResult {
  * Get fallback images when API fails
  */
 function getFallbackImages(fallbackId: string): HeroImageResult[] {
-  // This would typically return cached or placeholder images
-  // For now, return the default Unsplash URL format
-  const fallbackUrl = `https://images.unsplash.com/photo-${fallbackId}?w=1920&h=1080&fit=crop&q=80&auto=format`;
+  // Using placehold.co as a reliable fallback
+  const fallbackUrl = `https://placehold.co/1920x1080.png?text=Sierra+Property+Partners&bg=1e40af&fg=ffffff`;
   
   return [{
     id: fallbackId,
     url: fallbackUrl,
     urls: {
-      small: `https://images.unsplash.com/photo-${fallbackId}?w=640&h=360&fit=crop&q=80&auto=format`,
-      thumb: `https://images.unsplash.com/photo-${fallbackId}?w=200&h=200&fit=crop&q=80&auto=format`,
+      small: `https://placehold.co/640x360.png?text=Sierra+Property+Partners&bg=1e40af&fg=ffffff`,
+      thumb: `https://placehold.co/200x200.png?text=SPP&bg=1e40af&fg=ffffff`,
       regular: fallbackUrl,
-      full: `https://images.unsplash.com/photo-${fallbackId}?w=2560&h=1440&fit=crop&q=80&auto=format`,
-      raw: `https://images.unsplash.com/photo-${fallbackId}`,
+      full: `https://placehold.co/2560x1440.png?text=Sierra+Property+Partners&bg=1e40af&fg=ffffff`,
+      raw: fallbackUrl,
     },
     responsiveUrls: {
-      small: `https://images.unsplash.com/photo-${fallbackId}?w=640&h=360&fit=crop&q=80&auto=format`,
-      medium: `https://images.unsplash.com/photo-${fallbackId}?w=1024&h=576&fit=crop&q=80&auto=format`,
-      large: `https://images.unsplash.com/photo-${fallbackId}?w=1920&h=1080&fit=crop&q=80&auto=format`,
-      xlarge: `https://images.unsplash.com/photo-${fallbackId}?w=2560&h=1440&fit=crop&q=80&auto=format`,
+      small: `https://placehold.co/640x360.png?text=Sierra+Property+Partners&bg=1e40af&fg=ffffff`,
+      medium: `https://placehold.co/1024x576.png?text=Sierra+Property+Partners&bg=1e40af&fg=ffffff`,
+      large: `https://placehold.co/1920x1080.png?text=Sierra+Property+Partners&bg=1e40af&fg=ffffff`,
+      xlarge: `https://placehold.co/2560x1440.png?text=Sierra+Property+Partners&bg=1e40af&fg=ffffff`,
     },
     description: 'California Property Management',
     alt_description: 'Professional property management in Northern California',
@@ -371,7 +317,7 @@ function getFallbackImages(fallbackId: string): HeroImageResult[] {
     width: 1920,
     height: 1080,
     color: '#1e40af',
-    blur_hash: 'L0E]j%2Rj9j[Rjayj[j[ayj[ayj[',
+    blur_hash: null,
     created_at: new Date().toISOString(),
     attribution: {
       required: true,
@@ -399,11 +345,11 @@ export function checkRateLimit(): boolean {
   rateLimitState.burstRequests = rateLimitState.burstRequests.filter(time => time > oneMinuteAgo);
 
   // Check limits
-  if (rateLimitState.requests.length >= UNSPLASH_RATE_LIMITS.requestsPerHour) {
+  if (rateLimitState.requests.length >= PEXELS_RATE_LIMITS.requestsPerHour) {
     return false;
   }
 
-  if (rateLimitState.burstRequests.length >= UNSPLASH_RATE_LIMITS.burstLimit) {
+  if (rateLimitState.burstRequests.length >= PEXELS_RATE_LIMITS.burstLimit) {
     return false;
   }
 
@@ -421,16 +367,16 @@ export async function getHeroImageForPage(config: HeroImageConfig): Promise<Hero
   // Check rate limit first
   if (!checkRateLimit()) {
     console.warn('Rate limit exceeded, using fallback image');
-    const fallbacks = getFallbackImages(config.fallback || '1560518883-ce1e9c3bd3a5');
+    const fallbacks = getFallbackImages(config.fallback || 'fallback');
     return fallbacks[0];
   }
 
   try {
     const images = await searchHeroImages(config);
-    return images[0] || getFallbackImages(config.fallback || '1560518883-ce1e9c3bd3a5')[0];
+    return images[0] || getFallbackImages(config.fallback || 'fallback')[0];
   } catch (error) {
     console.error('Error getting hero image:', error);
-    const fallbacks = getFallbackImages(config.fallback || '1560518883-ce1e9c3bd3a5');
+    const fallbacks = getFallbackImages(config.fallback || 'fallback');
     return fallbacks[0];
   }
 }

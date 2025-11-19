@@ -66,6 +66,7 @@ export function HeroImage({
   };
 
   const handleImageError = () => {
+    console.error('HeroImage failed to load:', imageData?.url);
     setError('Failed to load image');
     setLoading(false);
   };
@@ -188,15 +189,12 @@ export function HeroImage({
         </div>
       </div>
 
-      {/* Unsplash Attribution */}
+      {/* Attribution */}
       {showAttribution && imageData?.attribution && (
         <div className="absolute bottom-4 right-4 z-20">
           <p className="text-xs text-white/70">
             {imageData.attribution.required && (
-              <a
-                href={imageData.links.html}
-                target="_blank"
-                rel="noopener noreferrer"
+              <span
                 className="hover:text-white transition-colors"
                 dangerouslySetInnerHTML={{
                   __html: imageData.attribution.html,

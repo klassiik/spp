@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MapPin, Phone, Clock, ArrowRight, Home, Building2, Users } from "lucide-react";
 import { locations, getLocationsByCounty, getCountyInfo } from "@/lib/data/locations";
-import { getUnsplashUrl } from "@/lib/data/unsplash-images";
+import { getPexelsUrl } from "@/lib/data/pexels-images";
 import { businessInfo } from "@/lib/data/business";
 import { generateLocalBusinessSchema, generateBreadcrumbSchema } from "@/lib/seo/schemas";
 import { SimpleHero } from "@/components/ui/hero-image";
@@ -50,7 +50,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     openGraph: {
       title,
       description,
-      images: [getUnsplashUrl(location.slug, 1200, 630)],
+      images: [getPexelsUrl(location.slug, 1200, 630)],
     },
     alternates: {
       canonical: `${process.env.NEXT_PUBLIC_SITE_URL}/services/${county}/${city}`,
@@ -67,7 +67,7 @@ export default async function LocationPage({ params }: PageProps) {
     notFound();
   }
 
-  const heroImage = getUnsplashUrl(location.slug);
+  const heroImage = getPexelsUrl(location.slug);
   const nearbyCities = getLocationsByCounty(county as County).filter((loc) => loc.slug !== city).slice(0, 5);
 
   const localBusinessSchema = generateLocalBusinessSchema({
