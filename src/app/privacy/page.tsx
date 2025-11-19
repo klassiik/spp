@@ -172,9 +172,9 @@ export default function PrivacyPage() {
             </p>
             <div className="bg-muted p-6 rounded-lg">
               <p><strong>Sierra Property Partners</strong><br />
-              11985 Heritage Oak Place, Suite 6<br />
+              11818 Kemper Road<br />
               Auburn, CA 95603</p>
-              <p><strong>Phone:</strong> (530) 878-8860<br />
+              <p><strong>Phone:</strong> (530) 635-4192<br />
               <strong>Email:</strong> info@sierrapropertypartners.com</p>
             </div>
 
