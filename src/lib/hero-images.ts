@@ -73,12 +73,12 @@ export interface ImageValidationCriteria {
 
 // Default validation criteria for hero images
 const DEFAULT_HERO_VALIDATION: ImageValidationCriteria = {
-  minWidth: 1920,
-  minHeight: 1080,
+  minWidth: 1200, // Lowered from 1920 to accept more images
+  minHeight: 800, // Lowered from 1080 to accept more images
   maxFileSize: 2 * 1024 * 1024, // 2MB
   aspectRatio: {
-    min: 1.6, // ~16:10
-    max: 2.2, // ~11:5
+    min: 1.3, // Lowered from 1.6 to accept more aspect ratios
+    max: 2.5, // Increased from 2.2 to accept more aspect ratios
   },
 };
 
